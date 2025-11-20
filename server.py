@@ -532,10 +532,13 @@ class PromptServer():
                         if content_type in {'text/html', 'text/html-sandboxed', 'application/xhtml+xml', 'text/javascript', 'text/css'}:
                             content_type = 'application/octet-stream'  # Forces download
 
-                        response = web.FileResponse(file)
-                        response.content_type = content_type
-                        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
-                        return response
+                        return web.FileResponse(
+                            file,
+                            headers={
+                                "Content-Disposition": f"attachment; filename=\"{filename}\"",
+                                "Content-Type": content_type
+                            }
+                        )
 
             return web.Response(status=404)
 
