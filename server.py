@@ -486,7 +486,7 @@ class PromptServer():
                             buffer.seek(0)
 
                             return web.Response(body=buffer.read(), content_type=f'image/{image_format}',
-                                                headers={"Content-Disposition": f"filename=\"{filename}\""})
+                                                headers={"Content-Disposition": f"attachment; filename=\"{filename}\""})
 
                     if 'channel' not in request.rel_url.query:
                         channel = 'rgba'
@@ -506,7 +506,7 @@ class PromptServer():
                             buffer.seek(0)
 
                             return web.Response(body=buffer.read(), content_type='image/png',
-                                                headers={"Content-Disposition": f"filename=\"{filename}\""})
+                                                headers={"Content-Disposition": f"attachment; filename=\"{filename}\""})
 
                     elif channel == 'a':
                         with Image.open(file) as img:
@@ -523,7 +523,7 @@ class PromptServer():
                             alpha_buffer.seek(0)
 
                             return web.Response(body=alpha_buffer.read(), content_type='image/png',
-                                                headers={"Content-Disposition": f"filename=\"{filename}\""})
+                                                headers={"Content-Disposition": f"attachment; filename=\"{filename}\""})
                     else:
                         # Get content type from mimetype, defaulting to 'application/octet-stream'
                         content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
@@ -532,13 +532,10 @@ class PromptServer():
                         if content_type in {'text/html', 'text/html-sandboxed', 'application/xhtml+xml', 'text/javascript', 'text/css'}:
                             content_type = 'application/octet-stream'  # Forces download
 
-                        return web.FileResponse(
-                            file,
-                            headers={
-                                "Content-Disposition": f"filename=\"{filename}\"",
-                                "Content-Type": content_type
-                            }
-                        )
+                        response = web.FileResponse(file)
+                        response.content_type = content_type
+                        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+                        return response
 
             return web.Response(status=404)
 
