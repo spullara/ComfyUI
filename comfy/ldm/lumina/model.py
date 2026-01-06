@@ -491,7 +491,8 @@ class NextDiT(nn.Module):
                 for layer_id in range(n_layers)
             ]
         )
-        self.norm_final = operation_settings.get("operations").RMSNorm(dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
+        # This norm final is in the lumina 2.0 code but isn't actually used for anything.
+        # self.norm_final = operation_settings.get("operations").RMSNorm(dim, eps=norm_eps, elementwise_affine=True, device=operation_settings.get("device"), dtype=operation_settings.get("dtype"))
         self.final_layer = FinalLayer(dim, patch_size, self.out_channels, z_image_modulation=z_image_modulation, operation_settings=operation_settings)
 
         if self.pad_tokens_multiple is not None:
@@ -625,7 +626,7 @@ class NextDiT(nn.Module):
             if pooled is not None:
                 pooled = self.clip_text_pooled_proj(pooled)
             else:
-                pooled = torch.zeros((1, self.clip_text_dim), device=x.device, dtype=x.dtype)
+                pooled = torch.zeros((x.shape[0], self.clip_text_dim), device=x.device, dtype=x.dtype)
 
             adaln_input = self.time_text_embed(torch.cat((t, pooled), dim=-1))
 
@@ -634,8 +635,11 @@ class NextDiT(nn.Module):
         img, mask, img_size, cap_size, freqs_cis = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens, transformer_options=transformer_options)
         freqs_cis = freqs_cis.to(img.device)
 
+        transformer_options["total_blocks"] = len(self.layers)
+        transformer_options["block_type"] = "double"
         img_input = img
         for i, layer in enumerate(self.layers):
+            transformer_options["block_index"] = i
             img = layer(img, mask, freqs_cis, adaln_input, transformer_options=transformer_options)
             if "double_block" in patches:
                 for p in patches["double_block"]:
