@@ -1,0 +1,14 @@
+comfyui_server:
+    base_path: ../
+    is_default: true
+    checkpoints: models/checkpoints/
+    loras: models/loras/
+    vae: models/vae/
+    controlnet: models/controlnet/
+    clip: models/clip/
+    text_encoders: models/text_encoders/
+    clip_vision: models/clip_vision/
+    embeddings: models/embeddings/
+    upscale_models: models/upscale_models/
+    diffusion_models: models/diffusion_models/
+
