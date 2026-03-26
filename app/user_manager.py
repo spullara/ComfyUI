@@ -6,6 +6,7 @@ import uuid
 import glob
 import shutil
 import logging
+import tempfile
 from aiohttp import web
 from urllib import parse
 from comfy.cli_args import args
@@ -377,22 +378,26 @@ class UserManager():
             try:
                 body = await request.read()
 
-                # Pretty print JSON files for better source control
-                if path.lower().endswith('.json'):
-                    try:
-                        # Parse JSON and re-serialize with indentation
-                        json_data = json.loads(body.decode('utf-8'))
-                        formatted_json = json.dumps(json_data, indent=2)
-                        with open(path, "w", encoding='utf-8') as f:
-                            f.write(formatted_json)
-                    except (json.JSONDecodeError, UnicodeDecodeError):
-                        # If JSON parsing fails, save as-is
-                        with open(path, "wb") as f:
+                dir_name = os.path.dirname(path)
+                fd, tmp_path = tempfile.mkstemp(dir=dir_name)
+                try:
+                    # Pretty print JSON files for better source control
+                    if path.lower().endswith('.json'):
+                        try:
+                            json_data = json.loads(body.decode('utf-8'))
+                            formatted_json = json.dumps(json_data, indent=2)
+                            with os.fdopen(fd, "w", encoding='utf-8') as f:
+                                f.write(formatted_json)
+                        except (json.JSONDecodeError, UnicodeDecodeError):
+                            with os.fdopen(fd, "wb") as f:
+                                f.write(body)
+                    else:
+                        with os.fdopen(fd, "wb") as f:
                             f.write(body)
-                else:
-                    # Non-JSON files are saved as-is
-                    with open(path, "wb") as f:
-                        f.write(body)
+                    os.replace(tmp_path, path)
+                except:
+                    os.unlink(tmp_path)
+                    raise
             except OSError as e:
                 logging.warning(f"Error saving file '{path}': {e}")
                 return web.Response(
